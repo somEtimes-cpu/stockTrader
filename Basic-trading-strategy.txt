@@ -1,0 +1,43 @@
+//@version=5
+indicator("Trend Following Strategy with RSI and ADX", shorttitle="ICTFS-RSI-ADX", overlay=true)
+
+// Input parameters
+forceBuysignal = input.bool(false, title= "Force buy Signal For test")
+forceSellSignal = input.bool(false, title="Force Sell Signal For test")
+fast_length = input.int(7, title="Fast EMA Length")
+slow_length = input.int(22, title="Slow EMA Length")
+atr_length = input.int(25, title="ATR Length")
+atr_multiplier = input.float(1, title="ATR Trailing Stop Multiplier")
+rsi_length = input.int(30, title="RSI Length")
+rsi_oversold = input.int(30, title="RSI Oversold Level")
+rsi_overbought = input.int(70, title="RSI Overbought Level")
+adx_length = input.int(4, title="ADX Length")
+adx_threshold = input.int(22, title="ADX Threshold")
+adx_smoothing = input.float(1, title="ADX Smoothing")
+risk_percentage = input.float(8, title="Risk Percentage per Trade", minval=0.1, maxval=10)
+take_profit_multiplier = input.int(4, title="Take Profit Multiplier")
+
+// Indicators
+fast_ema = ta.ema(close, fast_length)
+slow_ema = ta.ema(close, slow_length)
+atr = ta.atr(atr_length)
+rsi = ta.rsi(close, rsi_length)
+[dmi_plus, dmi_minus, adx] = ta.dmi(adx_length, math.round(adx_smoothing))
+ 
+// Determine trend direction
+bullish_trend = fast_ema > slow_ema and rsi > rsi_oversold and adx > adx_threshold
+
+// Entry conditions
+long_entry = ta.crossover(fast_ema, slow_ema) and rsi > rsi_oversold and adx > adx_threshold
+
+// Trailing stop loss
+long_stop = ta.lowest(close, atr_length) - atr_multiplier * atr
+
+// Take profit levels
+long_take_profit = close + take_profit_multiplier * atr
+
+alertcondition(long_entry and bullish_trend, title= "Buy Alert", message= '{"ticker": "{{ticker}}", "exchange": "{{exchange}}", "interval": "{{interval}}", "action": "Buy", "price": "{{close}}", "atr": "{{atr}}"}')
+alertcondition(ta.crossunder(close, long_stop), title="Exit Long Alert", message='{"ticker": "{{ticker}}", "exchange": "{{exchange}}", "interval": "{{interval}}", "action": "Sell", "price": "{{close}}", "atr": "{{atr}}"}')
+alertcondition(ta.crossover(close, long_take_profit), title="Take Profit Long Alert", message='{"ticker": "{{ticker}}", "exchange": "{{exchange}}", "interval": "{{interval}}", "action": "Sell", "price": "{{close}}", "atr": "{{atr}}"}')
+
+//This Strategy is a very basic strategy that uses exponential moving average(ema) to determine a upward and bullish trend and make trading decisions based off that.
